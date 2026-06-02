@@ -1,7 +1,9 @@
 name: Daily Media Crawl
 
 on:
-  # 스케줄은 cron-job.org에서 매일 00:00 UTC (= 9:00 KST)에 트리거
+  # 매일 오전 8시 KST (= 23:00 UTC 전날)
+  schedule:
+    - cron: "0 23 * * *"
   # GitHub UI에서 수동 실행 가능
   workflow_dispatch:
     inputs:
