@@ -24,6 +24,8 @@ SCOPES = [
 # '설정' 시트 초기값 (처음 시트 생성 시 사용)
 DEFAULT_CONFIG = {
     "buzzvil_adgroup_id": "55015",
+    "buzzvil_cpm_adgroup_id": "",
+    "buzzvil_cpm_material": "",
     "bsa_mobile_cost": "920000",
     "bsa_pc_cost": "460000",
 }
@@ -99,9 +101,9 @@ def save_dynamic_config(spreadsheet: gspread.Spreadsheet, sheet_name: str, updat
 
 def _build_rows(yesterday: str, dynamic_config: dict,
                 rtb_app: list[dict] | None, rtb_web: dict | None,
-                buzzvil: dict | None) -> list[list]:
+                buzzvil: list[dict] | None) -> list[list]:
     """
-    행을 구성. RTB_APP은 캠페인 수만큼 행이 생김(캠페인별 조회 실패 시 1행으로 폴백).
+    행을 구성. RTB_APP/버즈빌은 캠페인 수만큼 행이 생김(조회 실패/데이터 없음 시 1행으로 폴백).
     컬럼 순서: 날짜 | 매체구분 | 미디어 | 디바이스 | 소재명 | 노출 | 클릭 | 비용
     """
     mobile_cost = int(dynamic_config.get("bsa_mobile_cost", 920000))
@@ -118,6 +120,14 @@ def _build_rows(yesterday: str, dynamic_config: dict,
     if not rtb_app_rows:
         rtb_app_rows = [[yesterday, "RTB_APP", "RT", "없음", "없음", 0, 0, 0]]
 
+    buzzvil_rows = [
+        [yesterday, item["campaign_label"], "RT", "없음", item["material"],
+         item.get("imps", 0), item.get("clicks", 0), item.get("cost", 0)]
+        for item in (buzzvil or [])
+    ]
+    if not buzzvil_rows:
+        buzzvil_rows = [[yesterday, "버즈빌", "RT", "없음", "없음", 0, 0, 0]]
+
     rows = [
         # BSA Mobile
         [yesterday, "BSA", "BSA", "Mobile", "홈링크.링크", 0, 0, mobile_cost],
@@ -128,9 +138,8 @@ def _build_rows(yesterday: str, dynamic_config: dict,
         # RTB WEB
         [yesterday, "RTB_WEB", "RT", "없음", "없음",
          safe(rtb_web, "imps"), safe(rtb_web, "clicks"), safe(rtb_web, "cost")],
-        # 버즈빌
-        [yesterday, "버즈빌", "RT", "없음", "없음",
-         safe(buzzvil, "imps"), safe(buzzvil, "clicks"), safe(buzzvil, "cost")],
+        # 버즈빌 (캠페인별 1개 이상)
+        *buzzvil_rows,
     ]
     return rows
 
@@ -155,10 +164,10 @@ def _delete_rows_for_date(ws: gspread.Worksheet, target_date: str):
 
 
 def append_daily_rows(spreadsheet_id: str, data_sheet_name: str, config_sheet_name: str,
-                      rtb_app: list[dict] | None, rtb_web: dict | None, buzzvil: dict | None,
+                      rtb_app: list[dict] | None, rtb_web: dict | None, buzzvil: list[dict] | None,
                       target_date: str | None = None):
     """
-    수기매체업로드 시트에 전일자 행을 추가(BSA 2 + RTB_APP 캠페인 수 + RTB_WEB 1 + 버즈빌 1).
+    수기매체업로드 시트에 전일자 행을 추가(BSA 2 + RTB_APP 캠페인 수 + RTB_WEB 1 + 버즈빌 캠페인 수).
     동일 날짜 데이터가 이미 존재하면 해당 행 전체를 삭제 후 재업로드.
     """
     target_date = target_date or get_target_date()

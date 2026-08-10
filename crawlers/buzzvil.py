@@ -204,3 +204,33 @@ def scrape(adgroup_id: str, target_date: str | None = None) -> dict | None:
         return get_yesterday_data(driver, adgroup_id, target_date=target_date)
     finally:
         driver.quit()
+
+
+def scrape_campaigns(campaigns: list[dict], target_date: str | None = None) -> list[dict]:
+    """
+    여러 adgroup(캠페인)을 하나의 로그인 세션으로 순회 조회.
+    campaigns: [{"adgroup_id": str, "campaign_label": str, "material": str}, ...]
+              adgroup_id가 빈 문자열이면 건너뜀(해당 월에 캠페인이 없는 경우).
+    반환값: [{"campaign_label", "material", "imps", "clicks", "cost"}, ...] (조회 실패/데이터 없는 캠페인은 제외)
+    """
+    driver = build_driver()
+    results = []
+    try:
+        login(driver)
+        for c in campaigns:
+            adgroup_id = c.get("adgroup_id", "").strip()
+            if not adgroup_id:
+                logger.info(f"[Buzzvil] '{c.get('campaign_label')}' adgroup_id 없음 → 건너뜀")
+                continue
+            data = get_yesterday_data(driver, adgroup_id, target_date=target_date)
+            if data is None:
+                logger.warning(f"[Buzzvil] '{c.get('campaign_label')}'(adgroup {adgroup_id}) 데이터 없음")
+                continue
+            results.append({
+                "campaign_label": c["campaign_label"],
+                "material":       c["material"],
+                **data,
+            })
+    finally:
+        driver.quit()
+    return results

@@ -53,6 +53,8 @@ def run(target_date: str | None = None) -> dict:
     spreadsheet = uploader.get_spreadsheet(client, spreadsheet_id)
     dynamic_cfg = uploader.load_dynamic_config(spreadsheet, config_sheet_name)
     buzzvil_adgroup_id = dynamic_cfg.get("buzzvil_adgroup_id", "55015")
+    buzzvil_cpm_adgroup_id = dynamic_cfg.get("buzzvil_cpm_adgroup_id", "")
+    buzzvil_cpm_material = dynamic_cfg.get("buzzvil_cpm_material", "")
 
     results = {
         "date": target_date,
@@ -84,7 +86,11 @@ def run(target_date: str | None = None) -> dict:
     # ── Buzzvil 크롤링 ──────────────────────────────────────
     logger.info("--- Buzzvil 크롤링 시작 ---")
     try:
-        bv_data = buzzvil.scrape(adgroup_id=buzzvil_adgroup_id, target_date=target_date)
+        bv_campaigns = [
+            {"adgroup_id": buzzvil_adgroup_id, "campaign_label": "버즈빌", "material": "없음"},
+            {"adgroup_id": buzzvil_cpm_adgroup_id, "campaign_label": "버즈빌_CPM", "material": buzzvil_cpm_material or "없음"},
+        ]
+        bv_data = buzzvil.scrape_campaigns(bv_campaigns, target_date=target_date)
         results["buzzvil"] = bv_data
         if not bv_data:
             results["errors"].append("Buzzvil 데이터 없음")
