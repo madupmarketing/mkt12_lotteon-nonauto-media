@@ -60,40 +60,17 @@ def _extract_hash_from_url(dashboard_url: str) -> str:
     return path.split("/")[-1]
 
 
-def _fetch_subcampaign_names(email: str, password: str, advertiser_hash: str) -> dict[str, str]:
-    """
-    /advertisers/{hash}/subcampaigns 를 호출해 {subcampaign_hash: name} 매핑을 반환.
-    """
-    url = f"{API_BASE}/advertisers/{advertiser_hash}/subcampaigns"
-    logger.info(f"RTB 서브캠페인 목록 조회: {url}")
-
-    resp = requests.get(url, auth=HTTPBasicAuth(email, password), timeout=TIMEOUT)
-    if not resp.ok:
-        raise RuntimeError(f"RTB 서브캠페인 API 오류: {resp.status_code} {resp.text[:300]}")
-
-    payload = resp.json()
-    if payload.get("status") != "ok":
-        raise RuntimeError(f"RTB 서브캠페인 API 응답 오류: {payload}")
-
-    names = {}
-    for item in payload.get("data", []):
-        sub_hash = item.get("hash") or item.get("subcampaign")
-        name = item.get("name")
-        if sub_hash and name:
-            names[sub_hash] = name
-    return names
-
-
 def fetch_campaign_day_rows(advertiser_hash: str, target_date: str, campaign_map: dict, label: str) -> list[dict] | None:
     """
     캠페인(서브캠페인)별로 나뉜 하루치 지표를 조회해 시트 행 후보 목록으로 반환.
     campaign_map: config.json의 "app_campaign_map" (서브캠페인명 → {label, material}).
     campaign_map에 없는 서브캠페인은 건너뛰고 경고 로그만 남긴다.
     반환값: [{"campaign_label": str, "material": str, "imps": int, "clicks": int, "cost": int}, ...] 또는 실패 시 None.
+
+    RTB House rtb-stats를 groupBy=subcampaign으로 조회하면 각 행의 "subcampaign" 필드에
+    캠페인 이름이 직접 들어온다(별도 이름 조회 API 불필요. 2026-08-10 실 API 응답으로 확인).
     """
     email, password = _get_credentials()
-
-    names_by_hash = _fetch_subcampaign_names(email, password, advertiser_hash)
 
     rows = _call_api(
         email=email,
@@ -114,14 +91,13 @@ def fetch_campaign_day_rows(advertiser_hash: str, target_date: str, campaign_map
 
     results = []
     for r in rows:
-        sub_hash = r.get("subcampaign") or r.get("subcampaignHash") or r.get("hash")
-        campaign_name = names_by_hash.get(sub_hash) if sub_hash else None
+        campaign_name = r.get("subcampaign")
         mapping = campaign_map.get(campaign_name) if campaign_name else None
 
         if mapping is None:
             logger.warning(
                 f"[RTB {label} 캠페인별] 매핑 안 된 캠페인 건너뜀 "
-                f"(hash={sub_hash}, name={campaign_name}) — config.json의 app_campaign_map에 추가 필요"
+                f"(name={campaign_name}) — config.json의 app_campaign_map에 추가 필요"
             )
             continue
 
