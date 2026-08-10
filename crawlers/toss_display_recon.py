@@ -1,16 +1,18 @@
 """
 Toss Ads(ads-platform.toss.im) 디스플레이 광고 리포트 정찰용 스크립트.
 Sheets/Slack 미사용. 각 단계 스크린샷만 /tmp에 남긴다.
-클라우드에서 로그인이 실제로 되는지, 리포트 화면 구조가 어떤지 확인하는 용도.
+
+TOSS_COOKIES(Cookie-Editor로 내보낸 JSON) 환경변수를 브라우저에 주입해서
+이메일/비밀번호 로그인 + 2FA 없이 바로 리포트 화면에 들어가는지 확인하는 용도.
 확인 끝나면 이 파일은 삭제할 것.
 """
 
+import json
 import os
 import time
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
 
 REPORT_URL = "https://ads-platform.toss.im/reports/3606"
 SHOT_DIR = "/tmp"
@@ -45,83 +47,52 @@ def dump_html(driver, name: str):
         print(f"HTML 저장 실패({name}): {e}")
 
 
-def try_login(driver, email: str, password: str) -> bool:
-    """일반적인 이메일/비밀번호 폼을 찾아 로그인 시도. 성공 여부를 최선을 다해 판단."""
-    selectors = [
-        'input[type="email"]',
-        'input[name="email"]',
-        'input[name="username"]',
-        'input[type="text"]',
-    ]
-    email_input = None
-    for sel in selectors:
-        found = driver.find_elements(By.CSS_SELECTOR, sel)
-        if found:
-            email_input = found[0]
-            print(f"이메일 입력 필드 발견: {sel}")
-            break
+def inject_cookies(driver, cookies_json: str):
+    cookies = json.loads(cookies_json)
+    print(f"쿠키 {len(cookies)}개 로드")
 
-    if email_input is None:
-        print("이메일 입력 필드를 못 찾음")
-        return False
+    # 쿠키를 넣으려면 먼저 해당 도메인 페이지에 있어야 함
+    driver.get("https://ads-platform.toss.im")
+    time.sleep(1)
 
-    email_input.clear()
-    email_input.send_keys(email)
+    ok, fail = 0, 0
+    for c in cookies:
+        cookie = {
+            "name": c["name"],
+            "value": c["value"],
+            "path": c.get("path", "/"),
+        }
+        domain = c.get("domain")
+        if domain:
+            cookie["domain"] = domain
+        if c.get("expirationDate"):
+            cookie["expiry"] = int(c["expirationDate"])
+        if "secure" in c:
+            cookie["secure"] = c["secure"]
+        try:
+            driver.add_cookie(cookie)
+            ok += 1
+        except Exception as e:
+            fail += 1
+            print(f"쿠키 추가 실패({c.get('name')}, domain={domain}): {e}")
 
-    pw_inputs = driver.find_elements(By.CSS_SELECTOR, 'input[type="password"]')
-    if not pw_inputs:
-        print("비밀번호 입력 필드를 못 찾음")
-        return False
-    pw_inputs[0].clear()
-    pw_inputs[0].send_keys(password)
-
-    shot(driver, "02_form_filled")
-
-    submit_candidates = driver.find_elements(By.CSS_SELECTOR, 'button[type="submit"]')
-    if not submit_candidates:
-        submit_candidates = [
-            b for b in driver.find_elements(By.TAG_NAME, "button")
-            if any(t in b.text for t in ["로그인", "Login", "확인", "다음"])
-        ]
-    if not submit_candidates:
-        print("제출 버튼을 못 찾음")
-        return False
-
-    submit_candidates[0].click()
-    time.sleep(4)
-    return True
+    print(f"쿠키 주입 결과: 성공 {ok}개 / 실패 {fail}개")
 
 
 def main():
-    email = os.environ["TOSS_EMAIL"]
-    password = os.environ["TOSS_PASSWORD"]
+    cookies_json = os.environ["TOSS_COOKIES"]
 
     driver = build_driver()
     try:
-        print(f"1단계: {REPORT_URL} 접속")
-        driver.get(REPORT_URL)
-        time.sleep(4)
-        print(f"현재 URL: {driver.current_url}")
-        shot(driver, "01_initial")
-        dump_html(driver, "01_initial")
+        inject_cookies(driver, cookies_json)
 
-        if "login" in driver.current_url.lower() or driver.find_elements(By.CSS_SELECTOR, 'input[type="password"]'):
-            print("2단계: 로그인 폼으로 판단 → 로그인 시도")
-            ok = try_login(driver, email, password)
-            print(f"로그인 시도 결과: {ok}")
-            time.sleep(3)
-            print(f"로그인 후 URL: {driver.current_url}")
-            shot(driver, "03_after_login")
-            dump_html(driver, "03_after_login")
-        else:
-            print("로그인 폼이 안 보임 (이미 로그인 상태이거나 다른 구조)")
-
-        print("4단계: 리포트 화면 재접속 시도")
+        print(f"리포트 화면 접속: {REPORT_URL}")
         driver.get(REPORT_URL)
-        time.sleep(4)
+        time.sleep(5)
         print(f"최종 URL: {driver.current_url}")
-        shot(driver, "04_report_final")
-        dump_html(driver, "04_report_final")
+        print(f"페이지 제목: {driver.title}")
+        shot(driver, "cookie_01_report")
+        dump_html(driver, "cookie_01_report")
 
     finally:
         driver.quit()

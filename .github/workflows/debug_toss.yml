@@ -14,8 +14,7 @@ jobs:
           python-version: "3.11"
       - run: pip install selenium
       - env:
-          TOSS_EMAIL: ${{ secrets.TOSS_EMAIL }}
-          TOSS_PASSWORD: ${{ secrets.TOSS_PASSWORD }}
+          TOSS_COOKIES: ${{ secrets.TOSS_COOKIES }}
         run: python crawlers/toss_display_recon.py
       - name: 스크린샷/HTML 업로드
         if: always()
