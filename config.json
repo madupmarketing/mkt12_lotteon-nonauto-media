@@ -4,6 +4,16 @@
   "config_sheet_name": "설정",
   "rtbhouse": {
     "app_dashboard_url": "https://panel.rtbhouse.com/dashboard/zjgMiqEIsN3oQNMPG6hc?groupBy=day&rangeName=THIS_YEAR&countConvention=ATTRIBUTED",
-    "web_dashboard_url": "https://panel.rtbhouse.com/dashboard/0nxXCRelH0yCnjinL3tE?groupBy=day&rangeName=THIS_YEAR&countConvention=ATTRIBUTED"
+    "web_dashboard_url": "https://panel.rtbhouse.com/dashboard/0nxXCRelH0yCnjinL3tE?groupBy=day&rangeName=THIS_YEAR&countConvention=ATTRIBUTED",
+    "app_campaign_map": {
+      "Android": {
+        "label": "RTB_APP",
+        "material": "[RTB House] APP 리타게팅_롯데ON"
+      },
+      "Android_30D": {
+        "label": "RTB_APP_장기미구매자",
+        "material": "[RTB House] APP 장기미구매자"
+      }
+    }
   }
 }

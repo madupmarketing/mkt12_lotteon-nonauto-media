@@ -98,10 +98,10 @@ def save_dynamic_config(spreadsheet: gspread.Spreadsheet, sheet_name: str, updat
 # ─── 데이터 업로드 ─────────────────────────────────────────────────────────────
 
 def _build_rows(yesterday: str, dynamic_config: dict,
-                rtb_app: dict | None, rtb_web: dict | None,
+                rtb_app: list[dict] | None, rtb_web: dict | None,
                 buzzvil: dict | None) -> list[list]:
     """
-    5개 행을 구성.
+    행을 구성. RTB_APP은 캠페인 수만큼 행이 생김(캠페인별 조회 실패 시 1행으로 폴백).
     컬럼 순서: 날짜 | 매체구분 | 미디어 | 디바이스 | 소재명 | 노출 | 클릭 | 비용
     """
     mobile_cost = int(dynamic_config.get("bsa_mobile_cost", 920000))
@@ -110,14 +110,21 @@ def _build_rows(yesterday: str, dynamic_config: dict,
     def safe(data: dict | None, key: str, fallback=0):
         return data[key] if data else fallback
 
+    rtb_app_rows = [
+        [yesterday, item["campaign_label"], "RT", "없음", item["material"],
+         item.get("imps", 0), item.get("clicks", 0), item.get("cost", 0)]
+        for item in (rtb_app or [])
+    ]
+    if not rtb_app_rows:
+        rtb_app_rows = [[yesterday, "RTB_APP", "RT", "없음", "없음", 0, 0, 0]]
+
     rows = [
         # BSA Mobile
         [yesterday, "BSA", "BSA", "Mobile", "홈링크.링크", 0, 0, mobile_cost],
         # BSA PC
         [yesterday, "BSA", "BSA", "PC",     "홈링크.링크", 0, 0, pc_cost],
-        # RTB APP
-        [yesterday, "RTB_APP", "RT", "없음", "없음",
-         safe(rtb_app, "imps"), safe(rtb_app, "clicks"), safe(rtb_app, "cost")],
+        # RTB APP (캠페인별 1개 이상)
+        *rtb_app_rows,
         # RTB WEB
         [yesterday, "RTB_WEB", "RT", "없음", "없음",
          safe(rtb_web, "imps"), safe(rtb_web, "clicks"), safe(rtb_web, "cost")],
@@ -148,10 +155,10 @@ def _delete_rows_for_date(ws: gspread.Worksheet, target_date: str):
 
 
 def append_daily_rows(spreadsheet_id: str, data_sheet_name: str, config_sheet_name: str,
-                      rtb_app: dict | None, rtb_web: dict | None, buzzvil: dict | None,
+                      rtb_app: list[dict] | None, rtb_web: dict | None, buzzvil: dict | None,
                       target_date: str | None = None):
     """
-    수기매체업로드 시트에 전일자 5개 행을 추가.
+    수기매체업로드 시트에 전일자 행을 추가(BSA 2 + RTB_APP 캠페인 수 + RTB_WEB 1 + 버즈빌 1).
     동일 날짜 데이터가 이미 존재하면 해당 행 전체를 삭제 후 재업로드.
     """
     target_date = target_date or get_target_date()

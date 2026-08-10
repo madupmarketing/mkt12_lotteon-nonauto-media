@@ -69,6 +69,7 @@ def run(target_date: str | None = None) -> dict:
             app_url=static_cfg["rtbhouse"]["app_dashboard_url"],
             web_url=static_cfg["rtbhouse"]["web_dashboard_url"],
             target_date=target_date,
+            app_campaign_map=static_cfg["rtbhouse"].get("app_campaign_map"),
         )
         results["rtb_app"] = app_data
         results["rtb_web"] = web_data
