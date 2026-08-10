@@ -218,7 +218,7 @@ def scrape_campaigns(campaigns: list[dict], target_date: str | None = None) -> l
     try:
         login(driver)
         for c in campaigns:
-            adgroup_id = c.get("adgroup_id", "").strip()
+            adgroup_id = str(c.get("adgroup_id", "") or "").strip()
             if not adgroup_id:
                 logger.info(f"[Buzzvil] '{c.get('campaign_label')}' adgroup_id 없음 → 건너뜀")
                 continue
