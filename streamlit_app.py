@@ -202,6 +202,21 @@ with tab_config:
             help="URL의 /adgroups/{숫자}/report 에서 숫자 부분",
         )
 
+        st.markdown("**Buzzvil CPM 캠페인** (없으면 비워두면 자동으로 건너뜀)")
+        col_cpm_id, col_cpm_material = st.columns(2)
+        with col_cpm_id:
+            cpm_adgroup_id = st.text_input(
+                "CPM Adgroup ID",
+                value=cfg.get("buzzvil_cpm_adgroup_id", ""),
+                help="CPM 캠페인의 /adgroups/{숫자}/report 숫자 부분",
+            )
+        with col_cpm_material:
+            cpm_material = st.text_input(
+                "CPM 소재명",
+                value=cfg.get("buzzvil_cpm_material", ""),
+                help="예: 2607_버즈빌MF (시트의 소재명 열에 그대로 들어감)",
+            )
+
         st.markdown("**BSA 비용 (원)**")
         col_m, col_p = st.columns(2)
         with col_m:
@@ -221,6 +236,8 @@ with tab_config:
         if submitted:
             save_config({
                 "buzzvil_adgroup_id": adgroup_id,
+                "buzzvil_cpm_adgroup_id": cpm_adgroup_id,
+                "buzzvil_cpm_material": cpm_material,
                 "bsa_mobile_cost": str(mobile_cost),
                 "bsa_pc_cost": str(pc_cost),
             })
