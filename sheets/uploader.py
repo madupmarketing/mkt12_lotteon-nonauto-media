@@ -8,6 +8,7 @@ Google Sheets 연동 모듈
 import json
 import logging
 import os
+from datetime import datetime
 
 import gspread
 from google.oauth2.service_account import Credentials
@@ -185,3 +186,28 @@ def append_daily_rows(spreadsheet_id: str, data_sheet_name: str, config_sheet_na
 
     logger.info(f"업로드 완료: {len(rows)}개 행 추가 (날짜: {target_date})")
     return rows
+
+
+TOSS_DA_QUEUE_SHEET = "토스DA큐"
+
+
+def enqueue_toss_display_ads(spreadsheet_id: str, target_date: str):
+    """
+    토스 디스플레이 광고는 이 저장소(GitHub Actions)가 아니라 로컬 PC의
+    별도 스케줄러(lotteon-toss 프로젝트)가 처리한다(2FA 때문에 클라우드 로그인 불가).
+    이 함수는 그 로컬 스케줄러가 폴링하는 큐 시트에 "이 날짜도 갱신해줘" 요청만 남긴다.
+    로컬 PC가 꺼져 있으면 다음에 켜졌을 때 처리된다.
+    """
+    client = get_client()
+    spreadsheet = get_spreadsheet(client, spreadsheet_id)
+    try:
+        ws = spreadsheet.worksheet(TOSS_DA_QUEUE_SHEET)
+    except gspread.WorksheetNotFound:
+        ws = spreadsheet.add_worksheet(title=TOSS_DA_QUEUE_SHEET, rows=200, cols=3)
+        ws.update("A1:C1", [["date", "status", "requested_at"]])
+
+    ws.append_row(
+        [target_date, "pending", datetime.utcnow().isoformat()],
+        value_input_option="USER_ENTERED",
+    )
+    logger.info(f"토스DA큐에 등록: {target_date}")
