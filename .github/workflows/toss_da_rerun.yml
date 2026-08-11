@@ -1,0 +1,27 @@
+name: Toss Display Ads Rerun (Queue Only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_date:
+        description: "재실행할 날짜 (YYYY-MM-DD, 비우면 어제)"
+        required: false
+        default: ""
+  repository_dispatch:
+    types: [toss_da_rerun]
+
+jobs:
+  enqueue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+      - run: pip install -r requirements.txt
+      - env:
+          TARGET_DATE: ${{ github.event.inputs.target_date || github.event.client_payload.target_date }}
+          GOOGLE_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_SERVICE_ACCOUNT }}
+        run: python enqueue_toss_da.py
