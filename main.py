@@ -121,6 +121,14 @@ def run(target_date: str | None = None) -> dict:
             logger.error(f"Google Sheets 업로드 실패: {e}")
             results["errors"].append(f"Sheets 업로드 오류: {e}")
 
+    # ── 토스 디스플레이 광고 큐 등록 ──────────────────────────
+    # 토스는 2FA 때문에 이 저장소(GitHub Actions)에서 직접 못 돌리고,
+    # 로컬 PC 스케줄러가 이 큐를 폴링해서 대신 처리한다.
+    try:
+        uploader.enqueue_toss_display_ads(spreadsheet_id, target_date)
+    except Exception as e:
+        logger.warning(f"토스DA큐 등록 실패(무시하고 계속): {e}")
+
     # ── 결과 요약 ────────────────────────────────────────────
     logger.info("=== 실행 완료 ===")
     if results["errors"]:
