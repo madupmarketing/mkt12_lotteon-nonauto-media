@@ -8,11 +8,13 @@
     "app_campaign_map": {
       "Android": {
         "label": "RTB_APP",
-        "material": "[RTB House] APP 리타게팅_롯데ON"
+        "material": "[RTB House] APP 리타게팅_롯데ON",
+        "media_type": "RT"
       },
       "Android_30D": {
         "label": "RTB_APP_장기미구매",
-        "material": "[RTB House] APP 장기미구매자"
+        "material": "[RTB House] APP 장기미구매자",
+        "media_type": "DA"
       }
     }
   }
