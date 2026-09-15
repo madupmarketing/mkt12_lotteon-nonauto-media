@@ -114,7 +114,7 @@ def _build_rows(yesterday: str, dynamic_config: dict,
         return data[key] if data else fallback
 
     rtb_app_rows = [
-        [yesterday, item["campaign_label"], "RT", "없음", item["material"],
+        [yesterday, item["campaign_label"], item.get("media_type", "RT"), "없음", item["material"],
          item.get("imps", 0), item.get("clicks", 0), item.get("cost", 0)]
         for item in (rtb_app or [])
     ]
@@ -141,6 +141,10 @@ def _build_rows(yesterday: str, dynamic_config: dict,
          safe(rtb_web, "imps"), safe(rtb_web, "clicks"), safe(rtb_web, "cost")],
         # 버즈빌 (캠페인별 1개 이상)
         *buzzvil_rows,
+        # 에피어 (고정값 — 노출/클릭/비용은 공란)
+        [yesterday, "에피어", "RT", "없음", "[애피어] APP 리타게팅_롯데ON", "", "", ""],
+        # 토스Pioneer Club (고정값 — 노출/클릭/비용은 공란)
+        [yesterday, "토스Pioneer Club", "DA", "Mobile", "[pioneer] EP다이나믹", "", "", ""],
     ]
     return rows
 
