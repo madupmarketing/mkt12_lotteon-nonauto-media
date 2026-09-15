@@ -108,6 +108,7 @@ def fetch_campaign_day_rows(advertiser_hash: str, target_date: str, campaign_map
         results.append({
             "campaign_label": mapping["label"],
             "material":       mapping["material"],
+            "media_type":     mapping.get("media_type", "RT"),
             "imps":   imps,
             "clicks": clicks,
             "cost":   int(round(cost)),
