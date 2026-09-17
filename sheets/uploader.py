@@ -107,8 +107,8 @@ def _build_rows(yesterday: str, dynamic_config: dict,
     행을 구성. RTB_APP/버즈빌은 캠페인 수만큼 행이 생김(조회 실패/데이터 없음 시 1행으로 폴백).
     컬럼 순서: 날짜 | 매체구분 | 미디어 | 디바이스 | 소재명 | 노출 | 클릭 | 비용
     """
-    mobile_cost = int(dynamic_config.get("bsa_mobile_cost", 920000))
-    pc_cost     = int(dynamic_config.get("bsa_pc_cost",     460000))
+    mobile_cost = round(float(dynamic_config.get("bsa_mobile_cost", 920000)), 2)
+    pc_cost     = round(float(dynamic_config.get("bsa_pc_cost",     460000)), 2)
 
     def safe(data: dict | None, key: str, fallback=0):
         return data[key] if data else fallback
