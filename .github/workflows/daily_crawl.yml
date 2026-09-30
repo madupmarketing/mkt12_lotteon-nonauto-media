@@ -1,7 +1,7 @@
 name: Daily Media Crawl
 
 on:
-  # 매일 오전 8시 KST (= 23:00 UTC 전날)
+  # 매일 오전 8시 KST (= 23:00 UTC 전날) - 실행주체 이관
   schedule:
     - cron: "0 23 * * *"
   # GitHub UI에서 수동 실행 가능
