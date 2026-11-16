@@ -28,6 +28,7 @@ def build_driver():
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1920,1080")
+    options.set_capability("goog:loggingPrefs", {"performance": "ALL", "browser": "ALL"})
     return webdriver.Chrome(options=options)
 
 
@@ -61,6 +62,32 @@ def login(driver):
         wait.until(EC.url_changes(LOGIN_URL))
     except TimeoutException:
         pass
+
+    # [진단] 로그인 요청의 네트워크 결과/콘솔 오류 (주소·상태코드만, 본문/헤더 제외)
+    try:
+        time.sleep(3)
+        import json as _json
+        from urllib.parse import urlsplit as _urlsplit
+
+        for entry in driver.get_log("performance"):
+            msg = _json.loads(entry["message"])["message"]
+            method = msg.get("method", "")
+            params = msg.get("params", {})
+            if method == "Network.responseReceived":
+                resp = params.get("response", {})
+                u = _urlsplit(resp.get("url", ""))
+                if params.get("type") in ("XHR", "Fetch", "Document"):
+                    logger.info(f"[Buzzvil][진단] 응답 {resp.get('status')} {u.scheme}://{u.netloc}{u.path}")
+            elif method == "Network.loadingFailed":
+                logger.info(
+                    f"[Buzzvil][진단] 요청 실패 type={params.get('type')} "
+                    f"error={params.get('errorText')} blocked={params.get('blockedReason')} "
+                    f"cors={params.get('corsErrorStatus')}"
+                )
+        for entry in driver.get_log("browser"):
+            logger.info(f"[Buzzvil][진단] 콘솔 {entry.get('level')}: {str(entry.get('message'))[:300]}")
+    except Exception as e:
+        logger.warning(f"[Buzzvil][진단] 네트워크 진단 실패: {e}")
 
     try:
         driver.save_screenshot("/tmp/buzzvil_after_submit.png")
