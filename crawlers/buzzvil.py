@@ -144,6 +144,33 @@ def get_yesterday_data(driver, adgroup_id: str, target_date: str | None = None) 
         logger.warning("[Buzzvil] 테이블 로드 타임아웃. 계속 진행.")
     time.sleep(4)
 
+    # [진단] 표 구조 확인용 로그 (동작에는 영향 없음)
+    try:
+        logger.info(f"[Buzzvil][진단] url={driver.current_url} | title={driver.title}")
+        logger.info(
+            "[Buzzvil][진단] table=%d, role=table/grid=%d, role=row=%d, iframe=%d, tr=%d, th=%d"
+            % (
+                len(driver.find_elements(By.CSS_SELECTOR, "table")),
+                len(driver.find_elements(By.CSS_SELECTOR, '[role="table"], [role="grid"]')),
+                len(driver.find_elements(By.CSS_SELECTOR, '[role="row"]')),
+                len(driver.find_elements(By.CSS_SELECTOR, "iframe")),
+                len(driver.find_elements(By.CSS_SELECTOR, "tr")),
+                len(driver.find_elements(By.CSS_SELECTOR, "th")),
+            )
+        )
+        src = driver.page_source
+        idx = src.find("Spent Budget")
+        logger.info(f"[Buzzvil][진단] page_source 길이={len(src)}, 'Spent Budget' 위치={idx}")
+        if idx >= 0:
+            snippet = " ".join(src[max(0, idx - 600): idx + 300].split())
+            logger.info("[Buzzvil][진단] 헤더 주변 HTML: " + snippet)
+        else:
+            body = driver.find_element(By.TAG_NAME, "body").text
+            logger.info("[Buzzvil][진단] body 텍스트 앞 600자: " + " | ".join(body[:600].split()))
+        driver.save_screenshot("/tmp/buzzvil_debug.png")
+    except Exception as e:
+        logger.warning(f"[Buzzvil][진단] 실패: {e}")
+
     # 헤더 인덱스 파악
     try:
         header_cells = driver.find_elements(By.CSS_SELECTOR, "table thead th, table thead td")
