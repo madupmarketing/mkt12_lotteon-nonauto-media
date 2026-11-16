@@ -14,7 +14,7 @@ from utils.dates import get_target_date
 
 logger = logging.getLogger(__name__)
 
-LOGIN_URL = "https://dashboard.buzzvil.com/login"
+LOGIN_URL = "https://dashboard-next.buzzvil.com/login"
 REPORT_URL_TEMPLATE = "https://dashboard-next.buzzvil.com/campaign/direct-sales/adgroups/{adgroup_id}/report"
 
 
