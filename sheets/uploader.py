@@ -143,8 +143,6 @@ def _build_rows(yesterday: str, dynamic_config: dict,
         *buzzvil_rows,
         # 에피어 (고정값 — 노출/클릭/비용은 공란)
         [yesterday, "에피어", "RT", "없음", "[애피어] APP 리타게팅_롯데ON", "", "", ""],
-        # 토스Pioneer Club (고정값 — 노출/클릭/비용은 공란)
-        [yesterday, "토스Pioneer Club", "DA", "Mobile", "[pioneer] EP다이나믹", "", "", ""],
     ]
     return rows
 
