@@ -19,7 +19,7 @@ from pathlib import Path
 from crawlers import rtbhouse, buzzvil
 from sheets import uploader
 from utils.dates import get_target_date
-from utils.upload_policy import already_uploaded, should_upload
+from utils.upload_policy import already_uploaded, is_auto_run, should_upload
 
 logging.basicConfig(
     level=logging.INFO,
@@ -56,9 +56,15 @@ def run(target_date: str | None = None) -> dict:
     buzzvil_cpm_adgroup_id = dynamic_cfg.get("buzzvil_cpm_adgroup_id", "")
     buzzvil_cpm_material = dynamic_cfg.get("buzzvil_cpm_material", "")
 
-    # 자동(스케줄) 실행인데 수기로 이미 업로드된 날짜면 수집/업로드를 건너뛴다.
+    # 자동 실행(스케줄/Apps Script 정시 호출)인데 수기로 이미 업로드된 날짜면 수집/업로드를 건너뛴다.
     # (수동 실행은 항상 진행하며 기존 행을 덮어씀)
-    if os.environ.get("GITHUB_EVENT_NAME") == "schedule":
+    auto_run = is_auto_run(
+        os.environ.get("GITHUB_EVENT_NAME", ""),
+        os.environ.get("TARGET_DATE", ""),
+        os.environ.get("DATE_FROM", ""),
+        os.environ.get("DATE_TO", ""),
+    )
+    if auto_run:
         existing = spreadsheet.worksheet(data_sheet_name).get_all_values()
         if already_uploaded(existing, target_date):
             logger.info(f"{target_date} 데이터가 이미 업로드되어 있어 자동 실행을 건너뜁니다.")
