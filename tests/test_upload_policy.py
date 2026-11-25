@@ -1,6 +1,6 @@
 import unittest
 
-from utils.upload_policy import already_uploaded, should_upload
+from utils.upload_policy import already_uploaded, is_auto_run, should_upload
 
 
 class UploadPolicyTests(unittest.TestCase):
@@ -27,6 +27,23 @@ class AlreadyUploadedTests(unittest.TestCase):
         values = [[], [" 2026-11-15 ", "BSA"]]
         self.assertTrue(already_uploaded(values, "2026-11-15"))
         self.assertFalse(already_uploaded([[]], "2026-11-15"))
+
+
+class IsAutoRunTests(unittest.TestCase):
+    def test_schedule_is_auto(self):
+        self.assertTrue(is_auto_run("schedule"))
+
+    def test_dispatch_without_dates_is_auto(self):
+        self.assertTrue(is_auto_run("workflow_dispatch", "", "", ""))
+        self.assertTrue(is_auto_run("workflow_dispatch", "  ", "", ""))
+
+    def test_dispatch_with_any_date_is_manual(self):
+        self.assertFalse(is_auto_run("workflow_dispatch", "2026-11-24", "", ""))
+        self.assertFalse(is_auto_run("workflow_dispatch", "", "2026-11-20", "2026-11-24"))
+
+    def test_other_events_are_not_auto(self):
+        self.assertFalse(is_auto_run("push"))
+        self.assertFalse(is_auto_run(""))
 
 
 if __name__ == "__main__":
